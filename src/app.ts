@@ -83,8 +83,6 @@ db.collection("Sessions")
 .doc(sessionID)
 .collection("Sell Orders")
 .onSnapshot(snapshot =>{
-  var buyOrders: { user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
-  var sellOrders: { user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
   let changes = snapshot.docChanges();
   changes.forEach(change =>{
     if(change.type == 'added'){
