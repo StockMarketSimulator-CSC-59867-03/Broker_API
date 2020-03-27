@@ -17,8 +17,186 @@ class Broker{
     constructor(){
 		this.stockMaps();  
 	}
+
+	//convert order documents retrieved from the database into order objects
+	generateOrder(doc : any){
+		const id = doc.id;
+		const user = doc.data().User;
+		const price = doc.data().Price;
+		const quantity = doc.data().Quantity;
+		const stock = doc.data().Stock;
+		const time = doc.data().Time;
+		const order = {
+		  id:id,
+		  user:user,
+		  price:price,
+		  quantity:quantity,
+		  stock:stock,
+		  time:time
+		};
+		return order;
+	}
+
+	//price comparison function for buy orders (true when buyingPrice -> higher priority)
+	buyComparator(buyingPrice : number, currentPrice : number){
+		return buyingPrice > currentPrice;
+	}
+
+	//price comparison function for sell orders (true when sellingPrice -> higher priority)
+	sellComparator(sellingPrice : number, currentPrice : number){
+		return sellingPrice < currentPrice;
+	}
 	
+	//adds order to orderList; orders list based on buy order priority
+	addOrderToBuyList(order : any, orderList : any){
+		return this.addOrderToList(order,orderList,this.buyComparator);
+	}
+
+	//adds order to orderList; orders list based on sell order priority
+	addOrderToSellList(order : any, orderList : any){
+		return this.addOrderToList(order,orderList,this.sellComparator);
+	}
+
+	//adds order to correct position in array according to the comparator used
+	addOrderToList(order : any, orderList : any, 
+		comparator : (orderPrice : number, currentPrice : number) => any){
+		var location = -1;
+		var x;
+		if(orderList.length == 0){
+		  orderList.push(order);
+		}
+		else{
+		  var orderPrice = order.price;
+		  var orderTime = order.time;
+		  for(x of orderList){
+			var currentPrice = x.price;
+			var currentTime = x.time;
+			if(comparator(orderPrice,currentPrice)){
+			  break;
+			}
+			else if((orderPrice == currentPrice) && (orderTime < currentTime)){
+			  break;
+			}
+			location++;
+		  }
+		  orderList.splice(location+1,0,order);
+		}
+		return orderList;
+	}
+
+	//returns a promise that resolves the list of buy orders in order of priority
+	getRelevantBuyOrders(sessionID : string, stockName : string){
+		return new Promise((resolve,reject) =>{
+		var buyOrders: {id : any, user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
+		db.collection("Sessions")
+		.doc(sessionID)
+		.collection("Buy Orders")
+		.where('Stock','==',stockName)
+		.get()
+		.then((snapshot) => {
+			snapshot.docs.forEach(doc => {
+			var order = this.generateOrder(doc);
+			buyOrders = this.addOrderToBuyList(order,buyOrders);
+			});
+			resolve(buyOrders);
+		});
+		});
+	}
+  
+	//returns a promise that resolves the list of sell orders in order of priority
+	getRelevantSellOrders(sessionID : string, stockName : string){
+		return new Promise((resolve,reject) =>{
+			var sellOrders: { id : any, user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
+			db.collection("Sessions")
+			.doc(sessionID)
+			.collection("Sell Orders")
+			.where('Stock','==',stockName)
+			.get()
+			.then((snapshot) => {
+			snapshot.docs.forEach(doc => {
+				var order = this.generateOrder(doc);
+				sellOrders = this.addOrderToSellList(order,sellOrders);
+			}); 
+			resolve(sellOrders);
+			});
+		});
+	}
+  
+	//deletes order using order id, sessionID, and order type
+	deleteOrder(order : any, orderType : string, sessionID : string){
+		let deleteOrder = db.collection('Sessions')
+							.doc(sessionID)
+							.collection(orderType + ' Orders')
+							.doc(order.id)
+							.delete();
+	}
+  
+	//deletes buy order based on order id and sessionID
+	deleteBuyOrder(order : any, sessionID : string){
+		this.deleteOrder(order,'Buy',sessionID);
+	}
+
+	//deletes sell order based on order id and sessionID
+	deleteSellOrder(order : any, sessionID : string){
+		this.deleteOrder(order,'Sell',sessionID);
+	}
 	
+	//update order quantity to newQuantity
+	updateOrderQuantity(order : any, orderType : string, sessionID : string, newQuantity : number){
+		let updateOrderQuantity = db.collection('Sessions')
+							.doc(sessionID)
+							.collection(orderType + ' Orders')
+							.doc(order.id)
+							.update({Quantity:newQuantity});
+	}
+	
+	//update buy order quantity to newQuantity
+	updateBuyOrderQuantity(order : any, sessionID : string, newQuantity : number){
+		this.updateOrderQuantity(order,'Buy',sessionID,newQuantity);
+	}
+  
+	//update sell order quantity to newQuantity
+	updateSellOrderQuantity(order : any, sessionID : string, newQuantity : number){
+		this.updateOrderQuantity(order,'Sell',sessionID,newQuantity);
+	}
+  
+	//performs all possible matches for the given buyOrders and sellOrders; updates tables accordingly
+	checkOrdersForMatches(buyOrders : any, sellOrders : any, sessionID : string){
+		var matchingComplete = false;
+		var buyIndex = 0;
+		var sellIndex = 0;
+		while(!matchingComplete && (buyIndex < buyOrders.length) && (sellIndex < sellOrders.length)){
+			var highestBuy = buyOrders[buyIndex];
+			var lowestSell = sellOrders[sellIndex];
+			if(highestBuy < lowestSell){
+			matchingComplete = true;
+			}
+			else {
+			//matches are completed at sellingPrice
+			var sellingPrice = lowestSell.price;
+			var buyQuantity = highestBuy.quantity;
+			var sellQuantity = lowestSell.quantity;
+			var remainingQuantity = Math.abs(buyQuantity - sellQuantity);
+			if(buyQuantity > sellQuantity){
+				this.updateBuyOrderQuantity(highestBuy,sessionID,remainingQuantity);
+				this.deleteSellOrder(lowestSell,sessionID);
+				sellIndex++;
+			}
+			else if(sellQuantity > buyQuantity){
+				this.updateSellOrderQuantity(lowestSell,sessionID,remainingQuantity);
+				this.deleteBuyOrder(highestBuy,sessionID);
+				buyIndex++;
+			}
+			else{
+				this.deleteBuyOrder(highestBuy,sessionID);
+				this.deleteSellOrder(lowestSell,sessionID);
+				buyIndex++;
+				sellIndex++;
+			}
+			}
+		}
+	}
+
 	getBuyData(){
 		return this.buyOrders;
 	}

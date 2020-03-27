@@ -55,31 +55,78 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
 });
 
-db.collection("Sessions").doc("5BfhIdQHUYqXlmrfD1ql").collection("BuyOrder")
-.onSnapshot(function(snapshot) {
-  snapshot.docChanges().forEach(function(change) {
-      if (change.type === "added") {
-          let buy = change.doc.data();
-          broker.addBuyOrder(buy);
-      }
-      if (change.type === "removed") {
-          console.log("Removed: ", change.doc.data());
-      }
+const sessionID = 'fVO1CcjJ4p7ZXmKz9Fig';
+
+db.collection("Sessions")
+.doc(sessionID)
+.collection("Buy Orders")
+.onSnapshot(snapshot =>{
+  let changes = snapshot.docChanges();
+  changes.forEach(change =>{
+    if(change.type == 'added'){
+      const stockName = change.doc.data().Stock;
+
+      broker.getRelevantBuyOrders(sessionID,stockName)
+      .then((buyOrders : any) =>{
+        
+        broker.getRelevantSellOrders(sessionID,stockName)
+        .then((sellOrders : any) =>{
+
+          broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
+        });
+      });
+    }
   });
 });
 
-db.collection("Sessions").doc("5BfhIdQHUYqXlmrfD1ql").collection("SellOrder")
-.onSnapshot(function(snapshot) {
-  snapshot.docChanges().forEach(function(change) {
-      if (change.type === "added") {
-          let sell = change.doc.data();
-          broker.addSellOrder(sell);
-      }
-      if (change.type === "removed") {
-          console.log("Removed: ", change.doc.data());
-      }
+db.collection("Sessions")
+.doc(sessionID)
+.collection("Sell Orders")
+.onSnapshot(snapshot =>{
+  let changes = snapshot.docChanges();
+  changes.forEach(change =>{
+    if(change.type == 'added'){
+      const stockName = change.doc.data().Stock;
+
+      broker.getRelevantBuyOrders(sessionID,stockName)
+      .then((buyOrders : any) =>{
+        
+        broker.getRelevantSellOrders(sessionID,stockName)
+        .then((sellOrders : any) =>{
+
+          broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
+        });
+      });
+    }
   });
 });
+
+// db.collection("Sessions").doc("5BfhIdQHUYqXlmrfD1ql").collection("BuyOrder")
+// .onSnapshot(function(snapshot) {
+//   snapshot.docChanges().forEach(function(change) {
+//       if (change.type === "added") {
+//           let buy = change.doc.data();
+//           broker.addBuyOrder(buy);
+//       }
+//       if (change.type === "removed") {
+//           console.log("Removed: ", change.doc.data());
+//       }
+//   });
+// });
+
+
+// db.collection("Sessions").doc("5BfhIdQHUYqXlmrfD1ql").collection("SellOrder")
+// .onSnapshot(function(snapshot) {
+//   snapshot.docChanges().forEach(function(change) {
+//       if (change.type === "added") {
+//           let sell = change.doc.data();
+//           broker.addSellOrder(sell);
+//       }
+//       if (change.type === "removed") {
+//           console.log("Removed: ", change.doc.data());
+//       }
+//   });
+// });
 
 
 
