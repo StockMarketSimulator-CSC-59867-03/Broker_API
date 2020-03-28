@@ -55,51 +55,51 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
 });
 
-const sessionID = 'fVO1CcjJ4p7ZXmKz9Fig';
 
-db.collection("Sessions")
-.doc(sessionID)
-.collection("Buy Orders")
-.onSnapshot(snapshot =>{
-  let changes = snapshot.docChanges();
-  changes.forEach(change =>{
-    if(change.type == 'added'){
-      const stockName = change.doc.data().Stock;
+db.collection("BuyOrders")
+  .onSnapshot(snapshot =>{
+    let changes = snapshot.docChanges();
+    changes.forEach(change =>{
+      if(change.type == 'added'){
+        const stockName = change.doc.data().stock;
+        const sessionID = change.doc.data().sessionID;
 
-      broker.getRelevantBuyOrders(sessionID,stockName)
-      .then((buyOrders : any) =>{
-        
-        broker.getRelevantSellOrders(sessionID,stockName)
-        .then((sellOrders : any) =>{
+        broker.getRelevantBuyOrders(sessionID,stockName)
+        .then((buyOrders : any) =>{
+          
+          broker.getRelevantSellOrders(sessionID,stockName)
+          .then((sellOrders : any) =>{
+            console.log(buyOrders);
+            console.log(sellOrders);
+            //broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
 
-          broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
-        });
-      });
-    }
+          }).catch(function(){});
+        }).catch(function(){});
+      }
+    });
   });
-});
 
-db.collection("Sessions")
-.doc(sessionID)
-.collection("Sell Orders")
-.onSnapshot(snapshot =>{
-  let changes = snapshot.docChanges();
-  changes.forEach(change =>{
-    if(change.type == 'added'){
-      const stockName = change.doc.data().Stock;
+db.collection("SellOrders")
+  .onSnapshot(snapshot =>{
+    let changes = snapshot.docChanges();
+    changes.forEach(change =>{
+      if(change.type == 'added'){
+        const stockName = change.doc.data().stock;
+        const sessionID = change.doc.data().sessionID;
 
-      broker.getRelevantBuyOrders(sessionID,stockName)
-      .then((buyOrders : any) =>{
-        
-        broker.getRelevantSellOrders(sessionID,stockName)
-        .then((sellOrders : any) =>{
+        broker.getRelevantBuyOrders(sessionID,stockName)
+        .then((buyOrders : any) =>{
+          
+          broker.getRelevantSellOrders(sessionID,stockName)
+          .then((sellOrders : any) =>{
 
-          broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
-        });
-      });
-    }
+            //broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
+            
+          }).catch(function(){});
+        }).catch(function(){});
+      }
+    });
   });
-});
 
 // db.collection("Sessions").doc("5BfhIdQHUYqXlmrfD1ql").collection("BuyOrder")
 // .onSnapshot(function(snapshot) {

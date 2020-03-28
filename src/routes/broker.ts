@@ -21,13 +21,15 @@ class Broker{
 	//convert order documents retrieved from the database into order objects
 	generateOrder(doc : any){
 		const id = doc.id;
-		const user = doc.data().User;
-		const price = doc.data().Price;
-		const quantity = doc.data().Quantity;
-		const stock = doc.data().Stock;
-		const time = doc.data().Time;
+		const sessionID = doc.data().sessionID;
+		const user = doc.data().user;
+		const price = doc.data().price;
+		const quantity = doc.data().quantity;
+		const stock = doc.data().stock;
+		const time = doc.data().time;
 		const order = {
 		  id:id,
+		  sessionID:sessionID,
 		  user:user,
 		  price:price,
 		  quantity:quantity,
@@ -87,48 +89,51 @@ class Broker{
 	//returns a promise that resolves the list of buy orders in order of priority
 	getRelevantBuyOrders(sessionID : string, stockName : string){
 		return new Promise((resolve,reject) =>{
-		var buyOrders: {id : any, user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
-		db.collection("Sessions")
-		.doc(sessionID)
-		.collection("Buy Orders")
-		.where('Stock','==',stockName)
-		.get()
-		.then((snapshot) => {
-			snapshot.docs.forEach(doc => {
-			var order = this.generateOrder(doc);
-			buyOrders = this.addOrderToBuyList(order,buyOrders);
+			var buyOrders: {id : any, sessionID : any, user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
+			db.collection("BuyOrders")
+			.where('stock','==',stockName)
+			.where('sessionID','==',sessionID)
+			.get()
+			.then((snapshot) => {
+				snapshot.docs.forEach(doc => {
+					var order = this.generateOrder(doc);
+					buyOrders = this.addOrderToBuyList(order,buyOrders);
+					if(!order){
+						reject();
+					}
+				});
+				resolve(buyOrders);
 			});
-			resolve(buyOrders);
-		});
 		});
 	}
   
 	//returns a promise that resolves the list of sell orders in order of priority
 	getRelevantSellOrders(sessionID : string, stockName : string){
 		return new Promise((resolve,reject) =>{
-			var sellOrders: { id : any, user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
-			db.collection("Sessions")
-			.doc(sessionID)
-			.collection("Sell Orders")
-			.where('Stock','==',stockName)
+			var sellOrders: { id : any, sessionID : any, user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
+			db.collection("SellOrders")
+			.where('stock','==',stockName)
+			.where('sessionID','==',sessionID)
 			.get()
 			.then((snapshot) => {
-			snapshot.docs.forEach(doc => {
-				var order = this.generateOrder(doc);
-				sellOrders = this.addOrderToSellList(order,sellOrders);
-			}); 
-			resolve(sellOrders);
+				snapshot.docs.forEach(doc => {
+					var order = this.generateOrder(doc);
+					sellOrders = this.addOrderToSellList(order,sellOrders);
+					if(!order){
+						reject();
+					}
+				}); 
+				resolve(sellOrders);
 			});
 		});
 	}
   
 	//deletes order using order id, sessionID, and order type
 	deleteOrder(order : any, orderType : string, sessionID : string){
-		let deleteOrder = db.collection('Sessions')
-							.doc(sessionID)
-							.collection(orderType + ' Orders')
+		let deleteOrder = db.collection(orderType + 'Orders')
 							.doc(order.id)
 							.delete();
+							console.log()
 	}
   
 	//deletes buy order based on order id and sessionID
@@ -143,11 +148,9 @@ class Broker{
 	
 	//update order quantity to newQuantity
 	updateOrderQuantity(order : any, orderType : string, sessionID : string, newQuantity : number){
-		let updateOrderQuantity = db.collection('Sessions')
-							.doc(sessionID)
-							.collection(orderType + ' Orders')
-							.doc(order.id)
-							.update({Quantity:newQuantity});
+		let updateOrderQuantity = db.collection(orderType + 'Orders')
+									.doc(order.id)
+									.update({quantity:newQuantity});
 	}
 	
 	//update buy order quantity to newQuantity
