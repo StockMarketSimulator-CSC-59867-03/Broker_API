@@ -69,9 +69,8 @@ db.collection("BuyOrders")
           
           broker.getRelevantSellOrders(sessionID,stockName)
           .then((sellOrders : any) =>{
-            console.log(buyOrders);
-            console.log(sellOrders);
-            //broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
+            
+            broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
 
           }).catch(function(){});
         }).catch(function(){});
@@ -93,7 +92,7 @@ db.collection("SellOrders")
           broker.getRelevantSellOrders(sessionID,stockName)
           .then((sellOrders : any) =>{
 
-            //broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
+            broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
             
           }).catch(function(){});
         }).catch(function(){});
