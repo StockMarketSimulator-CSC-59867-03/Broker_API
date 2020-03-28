@@ -163,6 +163,10 @@ class Broker{
 		this.updateOrderQuantity(order,'Sell',sessionID,newQuantity);
 	}
   
+	updateLocalOrderQuantity(order : any, newQuantity : number){
+		order.quantity = newQuantity;
+	}
+
 	//performs all possible matches for the given buyOrders and sellOrders; updates tables accordingly
 	checkOrdersForMatches(buyOrders : any, sellOrders : any, sessionID : string){
 		var matchingComplete = false;
@@ -172,30 +176,32 @@ class Broker{
 			var highestBuy = buyOrders[buyIndex];
 			var lowestSell = sellOrders[sellIndex];
 			if(highestBuy < lowestSell){
-			matchingComplete = true;
+				matchingComplete = true;
 			}
 			else {
 			//matches are completed at sellingPrice
-			var sellingPrice = lowestSell.price;
-			var buyQuantity = highestBuy.quantity;
-			var sellQuantity = lowestSell.quantity;
-			var remainingQuantity = Math.abs(buyQuantity - sellQuantity);
-			if(buyQuantity > sellQuantity){
-				this.updateBuyOrderQuantity(highestBuy,sessionID,remainingQuantity);
-				this.deleteSellOrder(lowestSell,sessionID);
-				sellIndex++;
-			}
-			else if(sellQuantity > buyQuantity){
-				this.updateSellOrderQuantity(lowestSell,sessionID,remainingQuantity);
-				this.deleteBuyOrder(highestBuy,sessionID);
-				buyIndex++;
-			}
-			else{
-				this.deleteBuyOrder(highestBuy,sessionID);
-				this.deleteSellOrder(lowestSell,sessionID);
-				buyIndex++;
-				sellIndex++;
-			}
+				var sellingPrice = lowestSell.price;
+				var buyQuantity = highestBuy.quantity;
+				var sellQuantity = lowestSell.quantity;
+				var remainingQuantity = Math.abs(buyQuantity - sellQuantity);
+				if(buyQuantity > sellQuantity){
+					this.updateBuyOrderQuantity(highestBuy,sessionID,remainingQuantity);
+					this.updateLocalOrderQuantity(highestBuy,remainingQuantity);
+					this.deleteSellOrder(lowestSell,sessionID);
+					sellIndex++;
+				}
+				else if(sellQuantity > buyQuantity){
+					this.updateSellOrderQuantity(lowestSell,sessionID,remainingQuantity);
+					this.updateLocalOrderQuantity(lowestSell,remainingQuantity);
+					this.deleteBuyOrder(highestBuy,sessionID);
+					buyIndex++;
+				}
+				else{
+					this.deleteBuyOrder(highestBuy,sessionID);
+					this.deleteSellOrder(lowestSell,sessionID);
+					buyIndex++;
+					sellIndex++;
+				}
 			}
 		}
 	}
