@@ -41,10 +41,6 @@ app.use(function(req, res, next) {
   next(createError(404));
 });
 
-console.log("5");
-
-
-
 // error handler
 app.use(function(err, req, res, next) {
   // set locals, only providing error in development
@@ -57,45 +53,45 @@ app.use(function(err, req, res, next) {
 
 
 db.collection("BuyOrders")
-  .onSnapshot(snapshot =>{
+  .onSnapshot(async snapshot =>{
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
       if(change.type == 'added'){
         const stockName = change.doc.data().stock;
         const sessionID = change.doc.data().sessionID;
+        const order = broker.generateOrder(change.doc);
 
         broker.getRelevantBuyOrders(sessionID,stockName)
-        .then((buyOrders : any) =>{
+              .then((buyOrders : any) =>{
           
           broker.getRelevantSellOrders(sessionID,stockName)
-          .then((sellOrders : any) =>{
-            
+                .then((sellOrders : any) =>{
             broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
 
-          }).catch(function(){});
-        }).catch(function(){});
+          }).catch((err: any)=>{console.log(err)});
+        }).catch((err: any)=>{console.log(err)});
       }
     });
   });
 
 db.collection("SellOrders")
-  .onSnapshot(snapshot =>{
+  .onSnapshot(async snapshot =>{
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
       if(change.type == 'added'){
         const stockName = change.doc.data().stock;
         const sessionID = change.doc.data().sessionID;
-
+        const order = broker.generateOrder(change.doc);
+        
         broker.getRelevantBuyOrders(sessionID,stockName)
-        .then((buyOrders : any) =>{
+              .then((buyOrders : any) =>{
           
           broker.getRelevantSellOrders(sessionID,stockName)
-          .then((sellOrders : any) =>{
-
+                .then((sellOrders : any) =>{
             broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
             
-          }).catch(function(){});
-        }).catch(function(){});
+          }).catch((err: any)=>{console.log(err)});
+        }).catch((err: any)=>{console.log(err)});
       }
     });
   });

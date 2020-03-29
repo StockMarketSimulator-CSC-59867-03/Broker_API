@@ -15,7 +15,7 @@ class Broker{
 	public sellOrders = new Map();
 	
     constructor(){
-		this.stockMaps();  
+		//this.stockMaps();  
 	}
 
 	//convert order documents retrieved from the database into order objects
@@ -103,6 +103,9 @@ class Broker{
 					}
 				});
 				resolve(buyOrders);
+			}).catch((error : any) =>{
+				console.error(error);
+				reject();
 			});
 		});
 	}
@@ -124,7 +127,10 @@ class Broker{
 					}
 				}); 
 				resolve(sellOrders);
-			});
+			}).catch((error : any) =>{
+				console.error(error);
+				reject();
+			});;
 		});
 	}
   
@@ -132,8 +138,8 @@ class Broker{
 	deleteOrder(order : any, orderType : string, sessionID : string){
 		let deleteOrder = db.collection(orderType + 'Orders')
 							.doc(order.id)
-							.delete();
-							console.log()
+							.delete()
+							.catch(error => {console.log(error)});
 	}
   
 	//deletes buy order based on order id and sessionID
@@ -150,7 +156,8 @@ class Broker{
 	updateOrderQuantity(order : any, orderType : string, sessionID : string, newQuantity : number){
 		let updateOrderQuantity = db.collection(orderType + 'Orders')
 									.doc(order.id)
-									.update({quantity:newQuantity});
+									.update({quantity:newQuantity})
+									.catch(error => {console.log(error)});
 	}
 	
 	//update buy order quantity to newQuantity
@@ -174,8 +181,10 @@ class Broker{
 		var sellIndex = 0;
 		while(!matchingComplete && (buyIndex < buyOrders.length) && (sellIndex < sellOrders.length)){
 			var highestBuy = buyOrders[buyIndex];
+			var highestBuyPrice = highestBuy.price;
 			var lowestSell = sellOrders[sellIndex];
-			if(highestBuy < lowestSell){
+			var lowestSellPrice = lowestSell.price;
+			if(highestBuyPrice < lowestSellPrice){
 				matchingComplete = true;
 			}
 			else {
