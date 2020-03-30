@@ -22,7 +22,7 @@ class Broker{
 	generateOrder(doc : any){
 		const id = doc.id;
 		const sessionID = doc.data().sessionID;
-		const user = doc.data().user;
+		const userID = doc.data().userID;
 		const price = doc.data().price;
 		const quantity = doc.data().quantity;
 		const stock = doc.data().stock;
@@ -30,7 +30,7 @@ class Broker{
 		const order = {
 		  id:id,
 		  sessionID:sessionID,
-		  user:user,
+		  userID:userID,
 		  price:price,
 		  quantity:quantity,
 		  stock:stock,
@@ -89,7 +89,7 @@ class Broker{
 	//returns a promise that resolves the list of buy orders in order of priority
 	getRelevantBuyOrders(sessionID : string, stockName : string){
 		return new Promise((resolve,reject) =>{
-			var buyOrders: {id : any, sessionID : any, user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
+			var buyOrders: {id : any, sessionID : any, userID: any; price: any; quantity: any; stock: any; time: any; }[] = [];
 			db.collection("BuyOrders")
 			.where('stock','==',stockName)
 			.where('sessionID','==',sessionID)
@@ -113,7 +113,7 @@ class Broker{
 	//returns a promise that resolves the list of sell orders in order of priority
 	getRelevantSellOrders(sessionID : string, stockName : string){
 		return new Promise((resolve,reject) =>{
-			var sellOrders: { id : any, sessionID : any, user: any; price: any; quantity: any; stock: any; time: any; }[] = [];
+			var sellOrders: { id : any, sessionID : any, userID: any; price: any; quantity: any; stock: any; time: any; }[] = [];
 			db.collection("SellOrders")
 			.where('stock','==',stockName)
 			.where('sessionID','==',sessionID)
@@ -174,6 +174,49 @@ class Broker{
 		order.quantity = newQuantity;
 	}
 
+	addCompletedOrder(buyOrder : any, sellOrder : any, sessionID : any, matchedPrice : number, matchedQuantity : number){
+		db.collection('Sessions')
+		  .doc(sessionID)
+		  .collection('CompletedOrders')
+		  .add({
+			price : matchedPrice,
+			quantity : matchedQuantity,
+			stock : buyOrder.stock,
+			time : new Date().getTime(),
+			buyerID : buyOrder.userID,
+			sellerID : sellOrder.userID, 
+		  });
+	}
+
+	notifyUser(userID : any, title : any, message : any, type : any){
+		db.collection('User')
+		  .doc(userID)
+		  .collection('Notifications')
+		  .add({
+			userID : userID,
+			title : title,
+			body : message,
+			time : new Date().getTime(),
+			type : type,
+		  });
+	}
+
+	sendBuyOrderConfirmation(userID : any, buyOrder : any, purchasingPrice : number, purchasingQuantity){
+		var messageTitle = 'Buy Order Confirmation';
+		var messageBody = 'Your request to purchase the following stock has been succesfully confirmed:';
+		var purchaseDetails = '\nStock Name: ' + buyOrder.stock + '\nPurchase Price: ' + purchasingPrice + '\nPurchasing Quantity: ' + purchasingQuantity;  
+		var messageType = 'PurchaseConfirmation';
+		this.notifyUser(userID,messageTitle,messageBody+purchaseDetails,messageType);
+	}
+
+	sendSellOrderConfirmation(userID : any, sellOrder : any, sellingPrice : number, sellingQuantity : number){
+		var messageTitle = 'Sell Order Confirmation';
+		var messageBody = 'Your request to sell the following stock has been succesfully confirmed:';
+		var purchaseDetails = '\nStock Name: ' + sellOrder.stock + '\nSelling Price: ' + sellingPrice + '\nSelling Quantity: ' + sellingQuantity;  
+		var messageType = 'SaleConfirmation';
+		this.notifyUser(userID,messageTitle,messageBody+purchaseDetails,messageType);
+	}
+
 	//performs all possible matches for the given buyOrders and sellOrders; updates tables accordingly
 	checkOrdersForMatches(buyOrders : any, sellOrders : any, sessionID : string){
 		var matchingComplete = false;
@@ -184,6 +227,9 @@ class Broker{
 			var highestBuyPrice = highestBuy.price;
 			var lowestSell = sellOrders[sellIndex];
 			var lowestSellPrice = lowestSell.price;
+			var buyerID = highestBuy.userID;
+			var sellerID = lowestSell.userID;
+
 			if(highestBuyPrice < lowestSellPrice){
 				matchingComplete = true;
 			}
@@ -197,17 +243,26 @@ class Broker{
 					this.updateBuyOrderQuantity(highestBuy,sessionID,remainingQuantity);
 					this.updateLocalOrderQuantity(highestBuy,remainingQuantity);
 					this.deleteSellOrder(lowestSell,sessionID);
+					this.addCompletedOrder(highestBuy,lowestSell,sessionID,sellingPrice,sellQuantity);
+					this.sendBuyOrderConfirmation(buyerID,highestBuy,sellingPrice,sellQuantity);
+					this.sendSellOrderConfirmation(sellerID,lowestSell,sellingPrice,sellQuantity);
 					sellIndex++;
 				}
 				else if(sellQuantity > buyQuantity){
 					this.updateSellOrderQuantity(lowestSell,sessionID,remainingQuantity);
 					this.updateLocalOrderQuantity(lowestSell,remainingQuantity);
 					this.deleteBuyOrder(highestBuy,sessionID);
+					this.addCompletedOrder(highestBuy,lowestSell,sessionID,sellingPrice,buyQuantity);
+					this.sendBuyOrderConfirmation(buyerID,highestBuy,sellingPrice,buyQuantity);
+					this.sendSellOrderConfirmation(sellerID,lowestSell,sellingPrice,buyQuantity);
 					buyIndex++;
 				}
 				else{
 					this.deleteBuyOrder(highestBuy,sessionID);
 					this.deleteSellOrder(lowestSell,sessionID);
+					this.addCompletedOrder(highestBuy,lowestSell,sessionID,sellingPrice,buyQuantity);
+					this.sendBuyOrderConfirmation(buyerID,highestBuy,sellingPrice,buyQuantity);
+					this.sendSellOrderConfirmation(sellerID,lowestSell,sellingPrice,sellQuantity);
 					buyIndex++;
 					sellIndex++;
 				}
