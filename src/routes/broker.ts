@@ -174,7 +174,28 @@ class Broker{
 		order.quantity = newQuantity;
 	}
 
+	updateStockPrice(sessionID:any, time:any, stock:any, price:any){
+		let date = new Date(time);
+		let year = date.getFullYear();
+		let month = ("0" + (date.getMonth() + 1)).slice(-2);
+		let day = ("0" + date.getDate()).slice(-2);
+		let formatted_date = year + "-" + month + "-" + day;
+
+		db.collection("Sessions")
+		  .doc(sessionID)
+		  .collection("Stocks")
+		  .doc(stock)
+		  .collection("Stock History").get().then((querySnapshot) => {
+			querySnapshot.forEach((doc) => {
+				doc.ref.update({
+					data: db.FieldValue.arrayUnion({dateTime: formatted_date, price: price})
+				})
+			})
+		})
+	}
+
 	addCompletedOrder(buyOrder : any, sellOrder : any, sessionID : any, matchedPrice : number, matchedQuantity : number){
+		let time = new Date().getTime();
 		db.collection('Sessions')
 		  .doc(sessionID)
 		  .collection('CompletedOrders')
@@ -182,10 +203,11 @@ class Broker{
 			price : matchedPrice,
 			quantity : matchedQuantity,
 			stock : buyOrder.stock,
-			time : new Date().getTime(),
+			time : time,
 			buyerID : buyOrder.userID,
 			sellerID : sellOrder.userID, 
 		  });
+		this.updateStockPrice(sessionID, time, buyOrder.stock, matchedPrice);
 	}
 
 	notifyUser(userID : any, title : any, message : any, type : any){
