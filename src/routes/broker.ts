@@ -22,7 +22,7 @@ class Broker{
 	generateOrder(doc : any){
 		const id = doc.id;
 		const sessionID = doc.data().sessionID;
-		const userID = doc.data().userID;
+		const userID = doc.data().user;
 		const price = doc.data().price;
 		const quantity = doc.data().quantity;
 		const stock = doc.data().stock;
@@ -188,7 +188,7 @@ class Broker{
 		  .collection("Stock History").get().then((querySnapshot) => {
 			querySnapshot.forEach((doc) => {
 				doc.ref.update({
-					data: db.FieldValue.arrayUnion({dateTime: formatted_date, price: price})
+					data: fbAdmin.firestore.FieldValue.arrayUnion({dateTime: formatted_date, price: price})
 				})
 			})
 		})
