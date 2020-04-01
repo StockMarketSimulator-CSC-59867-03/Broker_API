@@ -185,13 +185,21 @@ class Broker{
 		  .doc(sessionID)
 		  .collection("Stocks")
 		  .doc(stock)
-		  .collection("Stock History").get().then((querySnapshot) => {
-			querySnapshot.forEach((doc) => {
+		  .collection("Stock History")
+		  .doc(formatted_date).get().then((doc) => {
+			  if(doc.exists)
+			  {
 				doc.ref.update({
-					data: fbAdmin.firestore.FieldValue.arrayUnion({dateTime: formatted_date, price: price})
+					data: fbAdmin.firestore.FieldValue.arrayUnion({dateTime: time, price: price})
 				})
-			})
-		})
+			  }
+			  else
+			  {
+				  doc.ref.set({
+					data: [{dateTime: time, price: price}]
+				  })
+			  }
+		  })
 	}
 
 	addCompletedOrder(buyOrder : any, sellOrder : any, sessionID : any, matchedPrice : number, matchedQuantity : number){
