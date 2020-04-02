@@ -1,5 +1,6 @@
 import * as express from 'express';
 import { type } from 'os';
+import { match } from 'assert';
 const fbAdmin = require('firebase-admin');
 const functions = require('firebase-functions');
 const db = fbAdmin.firestore();
@@ -210,7 +211,7 @@ class Broker{
 		  })
 	}
 
-	addCompletedOrder(buyOrder : any, sellOrder : any, sessionID : any, matchedPrice : number, matchedQuantity : number){
+	addCompletedOrder(buyOrder : any, sellOrder : any, sessionID : any, matchedPrice : any, matchedQuantity : any){
 		let time = new Date().getTime();
 		db.collection('Sessions')
 		  .doc(sessionID)
@@ -224,7 +225,51 @@ class Broker{
 			sellerID : sellOrder.userID, 
 		  });
 		this.updateStockPrice(sessionID, time, buyOrder.stock, matchedPrice);
+		this.addStocksToUser(sessionID,buyOrder.userID,buyOrder.stock,parseFloat(matchedPrice),parseFloat(matchedQuantity));
 	}
+
+
+	addStocksToUser(
+		sessionID: string,
+		userID: string,
+		symbol: string,
+		price: number,
+		quantity: number
+	  ) {
+		var docRef = db
+		  .collection("Sessions")
+		  .doc(sessionID)
+		  .collection("Users")
+		  .doc(userID)
+		  .collection("Stocks")
+		  .doc(symbol);
+
+		function addStocks(initalValue: number, previousQuantity: number) {
+		  docRef.set({
+			initalValue: initalValue + price * quantity,
+			quantity: quantity + previousQuantity
+		  });
+		}
+
+		docRef
+		  .get()
+		  .then(doc => {
+			if (doc.exists) {
+			  let initialValue = doc.data().initalValue;
+			  let previousValue = doc.data().quantity;
+			  if (initialValue != null && previousValue != null) {
+				addStocks(initialValue, previousValue);
+			  } else {
+				addStocks(0, 0);
+			  }
+			} else {
+			  addStocks(0, 0);
+			}
+		  })
+		  .catch(function(error) {
+			console.log("Error getting document:", error);
+		  });
+	  }
 
 	notifyUser(userID : any, title : any, message : any, type : any){
 		db.collection('User')
