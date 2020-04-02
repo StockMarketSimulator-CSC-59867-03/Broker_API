@@ -178,6 +178,7 @@ class Broker{
 		let month = ("0" + (date.getMonth() + 1)).slice(-2);
 		let day = ("0" + date.getDate()).slice(-2);
 		let formatted_date = year + "-" + month + "-" + day;
+		let matchedPrice = price;
 
 		db.collection("Sessions")
 		  .doc(sessionID)
@@ -188,15 +189,24 @@ class Broker{
 			  if(doc.exists)
 			  {
 				doc.ref.update({
-					data: fbAdmin.firestore.FieldValue.arrayUnion({dateTime: time, price: price})
+					data: fbAdmin.firestore.FieldValue.arrayUnion({dateTime: time, price: parseFloat(matchedPrice)})
 				})
 			  }
 			  else
 			  {
 				  doc.ref.set({
-					data: [{dateTime: time, price: price}]
+					data: [{dateTime: time, price: parseFloat(matchedPrice)}]
 				  })
 			  }
+		  })
+
+		db.collection("Sessions")
+		  .doc(sessionID)
+		  .collection("Stocks")
+		  .doc(stock).get().then((doc) => {
+			  doc.ref.update({
+				  price: parseFloat(matchedPrice)
+			  })
 		  })
 	}
 
