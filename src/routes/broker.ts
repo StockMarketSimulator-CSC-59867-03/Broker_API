@@ -189,13 +189,13 @@ class Broker{
 			  if(doc.exists)
 			  {
 				doc.ref.update({
-					data: fbAdmin.firestore.FieldValue.arrayUnion({dateTime: time, price: parseFloat(matchedPrice)})
+					data: fbAdmin.firestore.FieldValue.arrayUnion({dateTime: time, price: matchedPrice})
 				})
 			  }
 			  else
 			  {
 				  doc.ref.set({
-					data: [{dateTime: time, price: parseFloat(matchedPrice)}]
+					data: [{dateTime: time, price: matchedPrice}]
 				  })
 			  }
 		  })
@@ -205,7 +205,7 @@ class Broker{
 		  .collection("Stocks")
 		  .doc(stock).get().then((doc) => {
 			  doc.ref.update({
-				  price: parseFloat(matchedPrice)
+				  price: matchedPrice
 			  })
 		  })
 	}
@@ -224,7 +224,7 @@ class Broker{
 			sellerID : sellOrder.userID, 
 		  });
 		this.updateStockPrice(sessionID, time, buyOrder.stock, matchedPrice);
-		this.addStocksToUser(sessionID,buyOrder.userID,buyOrder.stock,parseFloat(matchedPrice),parseFloat(matchedQuantity));
+		this.addStocksToUser(sessionID,buyOrder.userID,buyOrder.stock,matchedPrice,matchedQuantity);
 	}
 
 
