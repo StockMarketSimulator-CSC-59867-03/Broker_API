@@ -136,7 +136,6 @@ class Broker {
         .then(snapshot => {
           snapshot.docs.forEach(doc => {
             var order = this.generateOrder(doc);
-            console.log(order);
             sellOrders = this.addOrderToSellList(order, sellOrders);
             if (!order) {
               reject();
