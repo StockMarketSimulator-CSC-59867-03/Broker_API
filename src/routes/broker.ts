@@ -222,12 +222,12 @@ class Broker {
           doc.ref.update({
             data: fbAdmin.firestore.FieldValue.arrayUnion({
               dateTime: time,
-              price: parseFloat(matchedPrice)
+              price: matchedPrice
             })
           });
         } else {
           doc.ref.set({
-            data: [{ dateTime: time, price: parseFloat(matchedPrice) }]
+            data: [{ dateTime: time, price: matchedPrice }]
           });
         }
       });
@@ -239,7 +239,7 @@ class Broker {
       .get()
       .then(doc => {
         doc.ref.update({
-          price: parseFloat(matchedPrice)
+          price: matchedPrice
         });
       });
   }
@@ -270,8 +270,8 @@ class Broker {
       buyOrder.userID,
       sellOrder.userID,
       buyOrder.stock,
-      parseFloat(matchedPrice),
-      parseFloat(matchedQuantity)
+      matchedPrice,
+      matchedQuantity
     )
       .then(() => {
         this.sendBuyOrderConfirmation(
@@ -361,7 +361,7 @@ class Broker {
             });
 
             transaction.set(buyerStock, {
-              initalValue: parseFloat(buyerDoc.initalValue) + cost,
+              initalValue: buyerDoc.initalValue + cost,
               quantity: newBuyerQuantity
             });
           }
@@ -385,7 +385,7 @@ class Broker {
             });
 
             transaction.set(sellerStock, {
-              initalValue: parseFloat(sellerDoc.initalValue) - gain,
+              initalValue: sellerDoc.initalValue - gain,
               quantity: newSellerQuantity
             });
           }
