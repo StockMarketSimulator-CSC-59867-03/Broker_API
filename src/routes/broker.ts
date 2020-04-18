@@ -4,15 +4,20 @@ import { match } from 'assert';
 const fbAdmin = require('firebase-admin');
 const functions = require('firebase-functions');
 const db = fbAdmin.firestore();
+const buyType = 'BUY';
+const sellType = 'SELL';
 
 
 
 class Broker {
   public path = "/";
   public router = express.Router();
-
+  private sessionBuyOrders;
+  private sessionSellOrders;
   constructor() {
     //this.stockMaps();
+    let sessionBuyOrders = new Map();
+    let sessionSellOrders = new Map();
   }
 
   //convert order documents retrieved from the database into order objects
@@ -34,6 +39,95 @@ class Broker {
       time: time
     };
     return order;
+  }
+
+  //checks if array contains an order with the specified order id
+  arrayContainsOrder(order : any, array : any){
+    let orderID = order.id;
+    let currentOrder;
+    for(currentOrder in array){
+      let currentOrderID = currentOrder.id;
+      if(currentOrderID === orderID){
+        return true;
+      }
+    }
+      return false;
+  }
+
+  getSessionOrderList(orderType : string){
+    return (orderType === buyType) ? this.sessionBuyOrders : this.sessionSellOrders;
+  }
+
+  getAddOrderToList(orderType : string){
+    return (orderType === buyType) ? this.addOrderToBuyList : this.addOrderToSellList;
+  }
+
+  addOrderToMap(order : any, orderType : string){
+    let sessionOrderList = this.getSessionOrderList(orderType);
+    let addOrderToList = this.getAddOrderToList(orderType);
+    let sessionID = order.sessionID;
+    let currentOrders;
+    if(sessionOrderList.has(sessionID)){
+      currentOrders = sessionOrderList.get(sessionID);
+      if(!this.arrayContainsOrder(order, currentOrders)){
+        currentOrders = addOrderToList(order, currentOrders);
+        sessionOrderList.set(sessionID,currentOrders);
+      }
+    }
+    else{
+      currentOrders = new Array(order);
+      sessionOrderList.set(sessionID,currentOrders);
+    }
+  }
+
+  addBuyOrderToMap(buyOrder : any){
+    this.addOrderToMap(buyOrder,buyType)
+  }
+
+  addSellOrderToMap(sellorder : any){
+    this.addOrderToMap(sellorder,sellType);
+  }
+
+  updateOrderQuantityFromMap(order: any, sessionID: string, newQuantity: number, orderType : string){
+    let sessionOrderList = this.getSessionOrderList(orderType);
+    let currentOrders = sessionOrderList.get(sessionID);
+    let currentOrder;
+    for(var c = 0; c < currentOrders.length; c++){
+      currentOrder = currentOrders[c];
+      if(order.id === currentOrder.id){
+        currentOrder.quantity = newQuantity;
+        continue;
+      }
+    }
+  }
+
+  updateBuyOrderQuantityFromMap(order: any, sessionID: string, newQuantity: number){
+    this.updateOrderQuantityFromMap(order,sessionID,newQuantity,buyType);
+  }
+
+  updateSellOrderQuantityFromMap(order: any, sessionID: string, newQuantity: number){
+    this.updateOrderQuantityFromMap(order,sessionID,newQuantity,sellType);
+  }
+
+  deleteOrderFromMap(order: any, sessionID: string, orderType : string){
+    let sessionOrderList = this.getSessionOrderList(orderType);
+    let currentOrders = sessionOrderList.get(sessionID);
+    let currentOrder;
+    for(var c = 0; c < currentOrders.length; c++){
+      currentOrder = currentOrders[c];
+      if(order.id === currentOrder.id){
+        currentOrders.splice(c,1);
+        continue;
+      }
+    }
+  }
+
+  deleteBuyOrderFromMap(order: any, sessionID: string){
+    this.deleteOrderFromMap(order,sessionID,buyType);
+  }
+
+  deleteSellOrderFromMap(order: any, sessionID: string){
+    this.deleteOrderFromMap(order,sessionID,sellType);
   }
 
   //price comparison function for buy orders (true when buyingPrice -> higher priority)
@@ -84,70 +178,29 @@ class Broker {
     return orderList;
   }
 
+  getRelevantOrders(sessionID : string, stockName : string, orderType : string){
+    let sessionOrderList = this.getSessionOrderList(orderType);
+    let addOrderToList = this.getAddOrderToList(orderType);
+    let currentOrders = sessionOrderList.get(sessionID);
+    let relevantOrders = new Array();
+    let currentOrder;
+    for(currentOrder in currentOrders){
+      let currentStockName = currentOrder.stock;
+      if(stockName === currentStockName){
+        relevantOrders = addOrderToList(currentOrder,relevantOrders);
+      }
+    }
+    return relevantOrders;
+  }
+
   //returns a promise that resolves the list of buy orders in order of priority
   getRelevantBuyOrders(sessionID: string, stockName: string) {
-    return new Promise((resolve, reject) => {
-      var buyOrders: {
-        id: any;
-        sessionID: any;
-        userID: any;
-        price: any;
-        quantity: any;
-        stock: any;
-        time: any;
-      }[] = [];
-      db.collection("BuyOrders")
-        .where("stock", "==", stockName)
-        .where("sessionID", "==", sessionID)
-        .get()
-        .then(snapshot => {
-          snapshot.docs.forEach(doc => {
-            var order = this.generateOrder(doc);
-            buyOrders = this.addOrderToBuyList(order, buyOrders);
-            if (!order) {
-              reject();
-            }
-          });
-          resolve(buyOrders);
-        })
-        .catch((error: any) => {
-          console.error(error);
-          reject();
-        });
-    });
+    this.getRelevantOrders(sessionID,stockName,buyType);
   }
 
   //returns a promise that resolves the list of sell orders in order of priority
   getRelevantSellOrders(sessionID: string, stockName: string) {
-    return new Promise((resolve, reject) => {
-      var sellOrders: {
-        id: any;
-        sessionID: any;
-        userID: any;
-        price: any;
-        quantity: any;
-        stock: any;
-        time: any;
-      }[] = [];
-      db.collection("SellOrders")
-        .where("stock", "==", stockName)
-        .where("sessionID", "==", sessionID)
-        .get()
-        .then(snapshot => {
-          snapshot.docs.forEach(doc => {
-            var order = this.generateOrder(doc);
-            sellOrders = this.addOrderToSellList(order, sellOrders);
-            if (!order) {
-              reject();
-            }
-          });
-          resolve(sellOrders);
-        })
-        .catch((error: any) => {
-          console.error(error);
-          reject();
-        });
-    });
+    this.getRelevantOrders(sessionID,stockName,sellType);
   }
 
   //deletes order using order id, sessionID, and order type

@@ -52,49 +52,50 @@ app.use(function(err, req, res, next) {
 });
 
 
-db.collection("BuyOrders")
-  .onSnapshot(async snapshot =>{
-    let changes = snapshot.docChanges();
-    changes.forEach(change =>{
-      if(change.type == 'added'){
-        const stockName = change.doc.data().stock;
-        const sessionID = change.doc.data().sessionID;
-        const order = broker.generateOrder(change.doc);
 
-        broker.getRelevantBuyOrders(sessionID,stockName)
-              .then((buyOrders : any) =>{
+// db.collection("BuyOrders")
+//   .onSnapshot(async snapshot =>{
+//     let changes = snapshot.docChanges();
+//     changes.forEach(change =>{
+//       if(change.type == 'added'){
+//         const stockName = change.doc.data().stock;
+//         const sessionID = change.doc.data().sessionID;
+//         const order = broker.generateOrder(change.doc);
+
+//         broker.getRelevantBuyOrders(sessionID,stockName)
+//               .then((buyOrders : any) =>{
           
-          broker.getRelevantSellOrders(sessionID,stockName)
-                .then((sellOrders : any) =>{
-            broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
+//           broker.getRelevantSellOrders(sessionID,stockName)
+//                 .then((sellOrders : any) =>{
+//             broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
 
-          }).catch((err: any)=>{console.log(err)});
-        }).catch((err: any)=>{console.log(err)});
-      }
-    });
-  });
+//           }).catch((err: any)=>{console.log(err)});
+//         }).catch((err: any)=>{console.log(err)});
+//       }
+//     });
+//   });
 
-db.collection("SellOrders")
-  .onSnapshot(async snapshot =>{
-    let changes = snapshot.docChanges();
-    changes.forEach(change =>{
-      if(change.type == 'added'){
-        const stockName = change.doc.data().stock;
-        const sessionID = change.doc.data().sessionID;
-        const order = broker.generateOrder(change.doc);
+// db.collection("SellOrders")
+//   .onSnapshot(async snapshot =>{
+//     let changes = snapshot.docChanges();
+//     changes.forEach(change =>{
+//       if(change.type == 'added'){
+//         const stockName = change.doc.data().stock;
+//         const sessionID = change.doc.data().sessionID;
+//         const order = broker.generateOrder(change.doc);
         
-        broker.getRelevantBuyOrders(sessionID,stockName)
-              .then((buyOrders : any) =>{
+//         broker.getRelevantBuyOrders(sessionID,stockName)
+//               .then((buyOrders : any) =>{
           
-          broker.getRelevantSellOrders(sessionID,stockName)
-                .then((sellOrders : any) =>{
-            broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
+//           broker.getRelevantSellOrders(sessionID,stockName)
+//                 .then((sellOrders : any) =>{
+//             broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
             
-          }).catch((err: any)=>{console.log(err)});
-        }).catch((err: any)=>{console.log(err)});
-      }
-    });
-  });
+//           }).catch((err: any)=>{console.log(err)});
+//         }).catch((err: any)=>{console.log(err)});
+//       }
+//     });
+//   });
 
 // db.collection("Sessions").doc("5BfhIdQHUYqXlmrfD1ql").collection("BuyOrder")
 // .onSnapshot(function(snapshot) {
