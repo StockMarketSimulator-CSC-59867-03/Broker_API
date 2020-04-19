@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "tsc && node dist/www.js"
+    "tsc": "tsc",
+    "start": "node dst/www.js",
+    "postinstall": "npm run tsc"
   },
   "dependencies": {
     "@types/node": "^13.7.1",
