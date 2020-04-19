@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "tsc": "tsc",
-    "start": "node dst/www.js",
+    "start": "node dist/www.js",
     "postinstall": "npm run tsc"
   },
   "dependencies": {
