@@ -16,8 +16,8 @@ class Broker {
   private sessionSellOrders;
   constructor() {
     //this.stockMaps();
-    let sessionBuyOrders = new Map();
-    let sessionSellOrders = new Map();
+    this.sessionBuyOrders = new Map();
+    this.sessionSellOrders = new Map();
   }
 
   //convert order documents retrieved from the database into order objects
@@ -45,7 +45,10 @@ class Broker {
   arrayContainsOrder(order : any, array : any){
     let orderID = order.id;
     let currentOrder;
-    for(currentOrder in array){
+    if(array == undefined || order == undefined){
+      return false;
+    }
+    for(currentOrder of array){
       let currentOrderID = currentOrder.id;
       if(currentOrderID === orderID){
         return true;
@@ -58,19 +61,19 @@ class Broker {
     return (orderType === buyType) ? this.sessionBuyOrders : this.sessionSellOrders;
   }
 
-  getAddOrderToList(orderType : string){
-    return (orderType === buyType) ? this.addOrderToBuyList : this.addOrderToSellList;
-  }
-
   addOrderToMap(order : any, orderType : string){
     let sessionOrderList = this.getSessionOrderList(orderType);
-    let addOrderToList = this.getAddOrderToList(orderType);
     let sessionID = order.sessionID;
     let currentOrders;
     if(sessionOrderList.has(sessionID)){
       currentOrders = sessionOrderList.get(sessionID);
       if(!this.arrayContainsOrder(order, currentOrders)){
-        currentOrders = addOrderToList(order, currentOrders);
+        if(orderType === buyType){
+          currentOrders = this.addOrderToBuyList(order,currentOrders);
+        }
+        else if(orderType === sellType){
+          currentOrders = this.addOrderToSellList(order,currentOrders);
+        }
         sessionOrderList.set(sessionID,currentOrders);
       }
     }
@@ -180,14 +183,20 @@ class Broker {
 
   getRelevantOrders(sessionID : string, stockName : string, orderType : string){
     let sessionOrderList = this.getSessionOrderList(orderType);
-    let addOrderToList = this.getAddOrderToList(orderType);
     let currentOrders = sessionOrderList.get(sessionID);
     let relevantOrders = new Array();
     let currentOrder;
-    for(currentOrder in currentOrders){
-      let currentStockName = currentOrder.stock;
-      if(stockName === currentStockName){
-        relevantOrders = addOrderToList(currentOrder,relevantOrders);
+    if(currentOrders != undefined){
+      for(currentOrder of currentOrders){
+        let currentStockName = currentOrder.stock;
+        if(stockName === currentStockName){
+          if(orderType === buyType){
+            relevantOrders = this.addOrderToBuyList(currentOrder,relevantOrders);
+          }
+          else if(orderType === sellType){
+            relevantOrders = this.addOrderToSellList(currentOrder,relevantOrders);
+          }
+        }
       }
     }
     return relevantOrders;
@@ -195,12 +204,12 @@ class Broker {
 
   //returns a promise that resolves the list of buy orders in order of priority
   getRelevantBuyOrders(sessionID: string, stockName: string) {
-    this.getRelevantOrders(sessionID,stockName,buyType);
+    return this.getRelevantOrders(sessionID,stockName,buyType);
   }
 
   //returns a promise that resolves the list of sell orders in order of priority
   getRelevantSellOrders(sessionID: string, stockName: string) {
-    this.getRelevantOrders(sessionID,stockName,sellType);
+    return this.getRelevantOrders(sessionID,stockName,sellType);
   }
 
   //deletes order using order id, sessionID, and order type
@@ -576,6 +585,8 @@ class Broker {
     var sellIndex = 0;
     while (
       !matchingComplete &&
+      buyOrders != undefined &&
+      sellOrders != undefined &&
       buyIndex < buyOrders.length &&
       sellIndex < sellOrders.length
     ) {
@@ -583,8 +594,6 @@ class Broker {
       var highestBuyPrice = highestBuy.price;
       var lowestSell = sellOrders[sellIndex];
       var lowestSellPrice = lowestSell.price;
-      var buyerID = highestBuy.userID;
-      var sellerID = lowestSell.userID;
 
       if (highestBuyPrice < lowestSellPrice) {
         matchingComplete = true;
@@ -613,6 +622,21 @@ class Broker {
           );
           functionArray.push(
             this.deleteSellOrder.bind(this, lowestSell, sessionID)
+          );
+          functionArray.push(
+            this.updateBuyOrderQuantityFromMap.bind(
+              this,
+              highestBuy,
+              sessionID,
+              remainingQuantity
+            )
+          );
+          functionArray.push(
+            this.deleteSellOrderFromMap.bind(
+              this,
+              lowestSell,
+              sessionID
+            )
           );
           this.addCompletedOrder(
             highestBuy,
@@ -643,7 +667,21 @@ class Broker {
           functionArray.push(
             this.deleteBuyOrder.bind(this, highestBuy, sessionID)
           );
-
+          functionArray.push(
+            this.updateSellOrderQuantityFromMap.bind(
+              this,
+              lowestSell,
+              sessionID,
+              remainingQuantity
+            )
+          );
+          functionArray.push(
+            this.deleteBuyOrderFromMap.bind(
+              this,
+              highestBuy,
+              sessionID
+            )
+          );
           this.addCompletedOrder(
             highestBuy,
             lowestSell,
@@ -662,6 +700,22 @@ class Broker {
             this.deleteSellOrder.bind(this, lowestSell, sessionID)
           );
 
+          functionArray.push(
+            this.deleteBuyOrderFromMap.bind(
+              this,
+              highestBuy,
+              sessionID
+            )
+          );
+
+          functionArray.push(
+            this.deleteSellOrderFromMap.bind(
+              this,
+              lowestSell,
+              sessionID
+            )
+          );
+
           this.addCompletedOrder(
             highestBuy,
             lowestSell,
@@ -675,6 +729,18 @@ class Broker {
         }
       }
     }
+  }
+
+  executeMatchesForOrder(order : any){
+    const stockName = order.stock;
+    const sessionID = order.sessionID;
+    let relevantBuyOrders = this.getRelevantBuyOrders(sessionID,stockName);
+    let relevantSellOrders = this.getRelevantSellOrders(sessionID,stockName);
+    this.checkOrdersForMatches(relevantBuyOrders,relevantSellOrders,sessionID);
+    console.log('buy orders');
+    console.log(this.sessionBuyOrders);
+    console.log('sell orders');
+    console.log(this.sessionSellOrders);
   }
 }
 export default Broker;
