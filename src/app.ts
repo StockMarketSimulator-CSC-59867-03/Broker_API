@@ -17,6 +17,7 @@ admin.initializeApp({
 import IndexMiddleWare, * as indexRouter from './routes/index';
 
 import Broker from './routes/broker';
+import { match } from 'assert';
 
 
 var app = express();
@@ -51,79 +52,28 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
 });
 
-
 db.collection("BuyOrders")
-  .onSnapshot(async snapshot =>{
+  .onSnapshot(snapshot =>{
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
       if(change.type == 'added'){
-        const stockName = change.doc.data().stock;
-        const sessionID = change.doc.data().sessionID;
-        const order = broker.generateOrder(change.doc);
-
-        broker.getRelevantBuyOrders(sessionID,stockName)
-              .then((buyOrders : any) =>{
-          
-          broker.getRelevantSellOrders(sessionID,stockName)
-                .then((sellOrders : any) =>{
-            broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
-
-          }).catch((err: any)=>{console.log(err)});
-        }).catch((err: any)=>{console.log(err)});
+        let order = broker.generateOrder(change.doc);
+        broker.addBuyOrderToMap(order);
+        broker.executeMatchesForOrder(order);
       }
     });
   });
 
 db.collection("SellOrders")
-  .onSnapshot(async snapshot =>{
+  .onSnapshot(snapshot =>{
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
       if(change.type == 'added'){
-        const stockName = change.doc.data().stock;
-        const sessionID = change.doc.data().sessionID;
-        const order = broker.generateOrder(change.doc);
-        
-        broker.getRelevantBuyOrders(sessionID,stockName)
-              .then((buyOrders : any) =>{
-          
-          broker.getRelevantSellOrders(sessionID,stockName)
-                .then((sellOrders : any) =>{
-            broker.checkOrdersForMatches(buyOrders,sellOrders,sessionID);
-            
-          }).catch((err: any)=>{console.log(err)});
-        }).catch((err: any)=>{console.log(err)});
+        let order = broker.generateOrder(change.doc);
+        broker.addSellOrderToMap(order);
+        broker.executeMatchesForOrder(order);
       }
     });
   });
-
-// db.collection("Sessions").doc("5BfhIdQHUYqXlmrfD1ql").collection("BuyOrder")
-// .onSnapshot(function(snapshot) {
-//   snapshot.docChanges().forEach(function(change) {
-//       if (change.type === "added") {
-//           let buy = change.doc.data();
-//           broker.addBuyOrder(buy);
-//       }
-//       if (change.type === "removed") {
-//           console.log("Removed: ", change.doc.data());
-//       }
-//   });
-// });
-
-
-// db.collection("Sessions").doc("5BfhIdQHUYqXlmrfD1ql").collection("SellOrder")
-// .onSnapshot(function(snapshot) {
-//   snapshot.docChanges().forEach(function(change) {
-//       if (change.type === "added") {
-//           let sell = change.doc.data();
-//           broker.addSellOrder(sell);
-//       }
-//       if (change.type === "removed") {
-//           console.log("Removed: ", change.doc.data());
-//       }
-//   });
-// });
-
-
-
 
 export = app;
