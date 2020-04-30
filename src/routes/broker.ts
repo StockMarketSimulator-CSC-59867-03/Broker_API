@@ -688,7 +688,10 @@ class Broker {
                                       .catch((error : any)=>{console.error(error)});
       let buyerHasFunds = await this.checkIfBuyerHasFunds(buyerID,sessionID,purchasingAmount)
                                     .catch((error : any)=>{console.error(error)});;
-
+      console.log('buy requests')
+      console.log(buyOrders)
+      console.log('sell orders')
+      console.log(sellOrders)
       if (highestBuyPrice < lowestSellPrice) {
         matchingComplete = true;
       } 
