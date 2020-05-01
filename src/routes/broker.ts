@@ -619,6 +619,9 @@ class Broker {
       if(stockName == undefined || sessionID == undefined || sellerID == undefined || purchasingQuantity <= 0){
         reject();
       }
+      if(sellerID === 'bot'){
+        resolve(true);
+      }
       db.collection("Sessions")
         .doc(sessionID)
         .collection("Users")
@@ -642,6 +645,9 @@ class Broker {
     return new Promise((resolve,reject) =>{
       if(sessionID == undefined || buyerID == undefined || purchasingAmount <= 0){
         reject();
+      }
+      if(buyerID === 'bot'){
+        resolve(true);
       }
       db.collection("Sessions")
         .doc(sessionID)
