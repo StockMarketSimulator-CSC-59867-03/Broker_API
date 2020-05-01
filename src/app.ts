@@ -57,6 +57,7 @@ db.collection("BuyOrders")
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
       if(change.type == 'added'){
+        console.log('monkey balls')
         let order = broker.generateOrder(change.doc);
         broker.addBuyOrderToMap(order);
         broker.executeMatchesForOrder(order);

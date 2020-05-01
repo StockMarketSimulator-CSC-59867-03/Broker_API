@@ -694,10 +694,7 @@ class Broker {
                                       .catch((error : any)=>{console.error(error)});
       let buyerHasFunds = await this.checkIfBuyerHasFunds(buyerID,sessionID,purchasingAmount)
                                     .catch((error : any)=>{console.error(error)});;
-      console.log('buy requests')
-      console.log(buyOrders)
-      console.log('sell orders')
-      console.log(sellOrders)
+
       if (highestBuyPrice < lowestSellPrice) {
         matchingComplete = true;
       } 
@@ -784,6 +781,10 @@ class Broker {
     const sessionID = order.sessionID;
     let relevantBuyOrders = this.getRelevantBuyOrders(sessionID,stockName);
     let relevantSellOrders = this.getRelevantSellOrders(sessionID,stockName);
+    console.log('buy orders')
+    console.log(this.sessionBuyOrders)
+    console.log('sell orders')
+    console.log(this.sessionSellOrders)
     this.checkOrdersForMatches(relevantBuyOrders,relevantSellOrders,sessionID)
   }
 }
