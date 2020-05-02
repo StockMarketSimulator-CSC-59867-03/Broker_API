@@ -6,6 +6,7 @@ const functions = require('firebase-functions');
 const db = fbAdmin.firestore();
 const buyType = 'BUY';
 const sellType = 'SELL';
+const botID = 'bot';
 
 
 
@@ -698,7 +699,7 @@ class Broker {
       if (highestBuyPrice < lowestSellPrice) {
         matchingComplete = true;
       } 
-      else if(buyerID === sellerID || !buyOrderExists || !buyerHasFunds){
+      else if(( (buyerID === sellerID) && !(buyerID === botID) ) || !buyOrderExists || !buyerHasFunds){
         buyIndex++;
       }
       else if(!sellOrderExists || !sellerOwnsStock){
@@ -781,7 +782,11 @@ class Broker {
     const sessionID = order.sessionID;
     let relevantBuyOrders = this.getRelevantBuyOrders(sessionID,stockName);
     let relevantSellOrders = this.getRelevantSellOrders(sessionID,stockName);
-    this.checkOrdersForMatches(relevantBuyOrders,relevantSellOrders,sessionID)
+    this.checkOrdersForMatches(relevantBuyOrders,relevantSellOrders,sessionID);
+    console.log('buy orders')
+    console.log(this.sessionBuyOrders)
+    console.log('sell orders')
+    console.log(this.sessionSellOrders)
   }
 }
 export default Broker;
