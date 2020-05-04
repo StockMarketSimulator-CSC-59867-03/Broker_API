@@ -783,10 +783,6 @@ class Broker {
     let relevantBuyOrders = this.getRelevantBuyOrders(sessionID,stockName);
     let relevantSellOrders = this.getRelevantSellOrders(sessionID,stockName);
     this.checkOrdersForMatches(relevantBuyOrders,relevantSellOrders,sessionID);
-    console.log('buy orders')
-    console.log(this.sessionBuyOrders)
-    console.log('sell orders')
-    console.log(this.sessionSellOrders)
   }
 }
 export default Broker;
