@@ -64,7 +64,6 @@ db.collection("BuyOrders")
       }
       else if(change.type == 'removed'){
         broker.deleteBuyOrderFromMap(order,sessionID);
-        console.log('whatever buy')
       }
     });
   });
@@ -80,7 +79,6 @@ db.collection("SellOrders")
         broker.executeMatchesForOrder(order);
       }else if(change.type == 'removed'){
         broker.deleteSellOrderFromMap(order,sessionID);
-        console.log('whatever sell')
       }
     });
   });
