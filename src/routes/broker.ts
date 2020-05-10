@@ -124,7 +124,7 @@ class Broker {
         continue;
       }
     }
-    // console.log(currentSession);
+    console.log(currentSession);
   }
 
   deleteBuyOrderFromMap(order: any, sessionID: string){
