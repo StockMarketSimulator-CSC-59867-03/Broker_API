@@ -4,10 +4,9 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-
 var admin = require('firebase-admin');
 var functions = require('firebase-functions');
-let serviceAccount = process.env.FIREBASE_API_KEY;
+let serviceAccount = process.env.FIREBASE_API_KEY; 
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(serviceAccount))
