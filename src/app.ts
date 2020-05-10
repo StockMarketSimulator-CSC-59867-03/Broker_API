@@ -4,10 +4,9 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-
 var admin = require('firebase-admin');
 var functions = require('firebase-functions');
-let serviceAccount = process.env.FIREBASE_API_KEY;
+let serviceAccount = process.env.FIREBASE_API_KEY; 
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(serviceAccount))
@@ -56,10 +55,14 @@ db.collection("BuyOrders")
   .onSnapshot(snapshot =>{
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
+      let order = broker.generateOrder(change.doc);
+      let sessionID = order.sessionID;
       if(change.type == 'added'){
-        let order = broker.generateOrder(change.doc);
         broker.addBuyOrderToMap(order);
         broker.executeMatchesForOrder(order);
+      }
+      else if(change.type == 'removed'){
+        broker.deleteBuyOrderFromMap(order,sessionID);
       }
     });
   });
@@ -68,10 +71,13 @@ db.collection("SellOrders")
   .onSnapshot(snapshot =>{
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
+      let order = broker.generateOrder(change.doc);
+      let sessionID = order.sessionID;
       if(change.type == 'added'){
-        let order = broker.generateOrder(change.doc);
         broker.addSellOrderToMap(order);
         broker.executeMatchesForOrder(order);
+      }else if(change.type == 'removed'){
+        broker.deleteSellOrderFromMap(order,sessionID);
       }
     });
   });

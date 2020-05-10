@@ -43,7 +43,7 @@ class Broker {
   }
 
   //checks if array contains an order with the specified order id
-  arrayContainsOrder(order : any, array : any){
+  sessionContainsOrder(order : any, array : any){
     let orderID = order.id;
     let currentOrder;
     if(array == undefined || order == undefined){
@@ -68,7 +68,7 @@ class Broker {
     let currentSession;
     if(sessionOrderMap.has(sessionID)){
       currentSession = sessionOrderMap.get(sessionID);
-      if(!this.arrayContainsOrder(order, currentSession)){
+      if(!this.sessionContainsOrder(order, currentSession)){
         if(orderType === buyType){
           currentSession = this.addOrderToBuyList(order,currentSession);
         }
@@ -496,7 +496,7 @@ class Broker {
       "\nStock Name: " +
       buyOrder.stock +
       "\nPurchase Price: " +
-      purchasingPrice +
+      purchasingPrice.toFixed(2) +
       "\nPurchasing Quantity: " +
       purchasingQuantity;
     let messageType = "PurchaseConfirmation";
@@ -611,7 +611,7 @@ class Broker {
     let currentSession;
     if(sessionOrderMap.has(sessionID)){
       currentSession = sessionOrderMap.get(sessionID);
-      return this.arrayContainsOrder(order,currentSession);
+      return this.sessionContainsOrder(order,currentSession);
     }
     return false;
   }
