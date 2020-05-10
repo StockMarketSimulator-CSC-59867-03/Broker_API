@@ -56,11 +56,15 @@ db.collection("BuyOrders")
   .onSnapshot(snapshot =>{
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
+      let order = broker.generateOrder(change.doc);
+      let sessionID = order.sessionID;
       if(change.type == 'added'){
-        console.log('monkey balls')
-        let order = broker.generateOrder(change.doc);
         broker.addBuyOrderToMap(order);
         broker.executeMatchesForOrder(order);
+      }
+      else if(change.type == 'removed'){
+        broker.deleteBuyOrderFromMap(order,sessionID);
+        console.log('whatever buy')
       }
     });
   });
@@ -69,10 +73,14 @@ db.collection("SellOrders")
   .onSnapshot(snapshot =>{
     let changes = snapshot.docChanges();
     changes.forEach(change =>{
+      let order = broker.generateOrder(change.doc);
+      let sessionID = order.sessionID;
       if(change.type == 'added'){
-        let order = broker.generateOrder(change.doc);
         broker.addSellOrderToMap(order);
         broker.executeMatchesForOrder(order);
+      }else if(change.type == 'removed'){
+        broker.deleteSellOrderFromMap(order,sessionID);
+        console.log('whatever sell')
       }
     });
   });
